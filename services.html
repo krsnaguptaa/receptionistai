@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0">
+    <title>Services — {{ business_name }}</title>
+    <link rel="stylesheet"
+          href="/static/style.css">
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 92%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px
+                        rgba(0,0,0,0.3);
+        }
+        .modal h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #1a1a2e;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid #f0f0f0;
+        }
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            flex: 1;
+        }
+        .btn-save {
+            background: #1a1a2e;
+            color: white;
+            flex: 2;
+        }
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+        }
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #ccc;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+        .slider:before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        input:checked + .slider {
+            background: #28a745;
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .status-label {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .inactive-row td {
+            opacity: 0.45;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1>🌟 ReceptionistAI</h1>
+        <p>{{ business_name }}</p>
+    </div>
+</div>
+
+<div class="nav">
+    <a href="/" class="nav-link">
+        📊 Dashboard</a>
+    <a href="/customers" class="nav-link">
+        👥 Customers</a>
+    <a href="/services" class="nav-link active">
+        ✂️ Services</a>
+    <a href="/stylists" class="nav-link">
+        👨‍💼 Stylists</a>
+    <a href="/cafe" class="nav-link">
+        ☕ Cafe</a>
+    <a href="/analytics" class="nav-link">
+        📈 Analytics</a>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>✂️ Services & Prices</h2>
+        <div class="header-actions">
+            <span style="font-size:12px;
+                         color:#888">
+                Click Edit to change anything
+            </span>
+            <button onclick="openAddModal()"
+                    class="btn btn-primary">
+                ➕ Add New Service
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Service Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Duration</th>
+                    <th>Stylist</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in services %}
+            <tr {% if not s['is_active'] %}
+                class="inactive-row"
+                {% endif %}>
+                <td>
+                    <strong>{{ s['name'] }}</strong>
+                    {% if s['description'] %}
+                    <div style="font-size:11px;
+                                color:#888;
+                                margin-top:2px">
+                        {{ s['description'] }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>{{ s['category'] }}</td>
+                <td>
+                    <strong>₹{{ s['price'] }}</strong>
+                </td>
+                <td>{{ s['duration_mins'] }} mins</td>
+                <td>{{ s['stylist'] }}</td>
+                <td>
+                    <span class="badge
+                    {% if s['is_active'] %}
+                    badge-online
+                    {% else %}
+                    badge-walkin
+                    {% endif %}">
+                    {% if s['is_active'] %}
+                    ✅ Active
+                    {% else %}
+                    ❌ Inactive
+                    {% endif %}
+                    </span>
+                </td>
+                <td>
+                    <button
+                    onclick="openEditModal(
+                        {{ s['id'] }},
+                        `{{ s['name'] }}`,
+                        {{ s['price'] }},
+                        {{ s['duration_mins'] }},
+                        `{{ s['category'] }}`,
+                        `{{ s['stylist'] }}`,
+                        {{ s['is_active'] }},
+                        `{{ s['description'] or '' }}`
+                    )"
+                    class="btn btn-small
+                           btn-primary">
+                        ✏️ Edit All
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══ EDIT MODAL ═══ -->
+<div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+        <h3>✏️ Edit Service — Change Anything</h3>
+
+        <input type="hidden" id="edit-id">
+
+        <!-- Service Name -->
+        <div class="form-group">
+            <label>
+                Service Name
+                <span style="color:red">*</span>
+            </label>
+            <input type="text"
+                   id="edit-name"
+                   placeholder="e.g. Balayage">
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label>Description (optional)</label>
+            <input type="text"
+                   id="edit-desc"
+                   placeholder="e.g. Natural sun-kissed look">
+        </div>
+
+        <!-- Price + Duration -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>
+                    Price (₹)
+                    <span style="color:red">*</span>
+                </label>
+                <input type="number"
+                       id="edit-price"
+                       placeholder="2500"
+                       min="0">
+            </div>
+            <div class="form-group">
+                <label>
+                    Duration (minutes)
+                    <span style="color:red">*</span>
+                </label>
+                <input type="number"
+                       id="edit-duration"
+                       placeholder="120"
+                       min="5">
+            </div>
+        </div>
+
+        <!-- Category + Stylist -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Category</label>
+                <select id="edit-category">
+                    <option value="Hair">
+                        ✂️ Hair
+                    </option>
+                    <option value="Color">
+                        🎨 Color
+                    </option>
+                    <option value="Treatment">
+                        💆 Treatment
+                    </option>
+                    <option value="Nails">
+                        💅 Nails
+                    </option>
+                    <option value="Skin">
+                        ✨ Skin
+                    </option>
+                    <option value="Makeup">
+                        💄 Makeup
+                    </option>
+                    <option value="Beard">
+                        🧔 Beard
+                    </option>
+                    <option value="Waxing">
+                        🪒 Waxing
+                    </option>
+                    <option value="Facial">
+                        🧖 Facial
+                    </option>
+                    <option value="Other">
+                        📦 Other
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assigned Stylist</label>
+                <select id="edit-stylist">
+                    <option value="Any">
+                        👥 Any Stylist
+                    </option>
+                    {% for stylist in stylists %}
+                    <option value="{{ stylist['name'] }}">
+                        👤 {{ stylist['name'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Active/Inactive Toggle -->
+        <div class="form-group">
+            <label>Service Availability</label>
+            <div class="status-toggle">
+                <label class="switch">
+                    <input type="checkbox"
+                           id="edit-active"
+                           onchange="updateStatusLabel()">
+                    <span class="slider"></span>
+                </label>
+                <span class="status-label"
+                      id="status-label-text">
+                    Active
+                </span>
+                <span style="font-size:12px;
+                             color:#888;
+                             margin-left:auto">
+                    Toggle off to hide from AI
+                </span>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="modal-footer">
+            <button
+            onclick="closeModal('edit-modal')"
+            class="btn btn-cancel">
+                Cancel
+            </button>
+            <button onclick="deleteService()"
+                    class="btn btn-delete">
+                🗑️ Delete
+            </button>
+            <button onclick="saveService()"
+                    class="btn btn-save">
+                ✅ Save All Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ ADD NEW SERVICE MODAL ═══ -->
+<div class="modal-overlay" id="add-modal">
+    <div class="modal">
+        <h3>➕ Add New Service</h3>
+        <p style="color:#888;
+                  font-size:13px;
+                  margin-bottom:16px">
+            AI will automatically offer
+            this service to customers
+        </p>
+
+        <!-- Name -->
+        <div class="form-group">
+            <label>
+                Service Name
+                <span style="color:red">*</span>
+            </label>
+            <input type="text"
+                   id="add-name"
+                   placeholder="e.g. Nail Extension">
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text"
+                   id="add-desc"
+                   placeholder="Short description">
+        </div>
+
+        <!-- Price + Duration -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>
+                    Price (₹)
+                    <span style="color:red">*</span>
+                </label>
+                <input type="number"
+                       id="add-price"
+                       placeholder="1500"
+                       min="0">
+            </div>
+            <div class="form-group">
+                <label>
+                    Duration (minutes)
+                    <span style="color:red">*</span>
+                </label>
+                <input type="number"
+                       id="add-duration"
+                       placeholder="60"
+                       min="5">
+            </div>
+        </div>
+
+        <!-- Category + Stylist -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Category</label>
+                <select id="add-category">
+                    <option value="Hair">
+                        ✂️ Hair
+                    </option>
+                    <option value="Color">
+                        🎨 Color
+                    </option>
+                    <option value="Treatment">
+                        💆 Treatment
+                    </option>
+                    <option value="Nails">
+                        💅 Nails
+                    </option>
+                    <option value="Skin">
+                        ✨ Skin
+                    </option>
+                    <option value="Makeup">
+                        💄 Makeup
+                    </option>
+                    <option value="Beard">
+                        🧔 Beard
+                    </option>
+                    <option value="Waxing">
+                        🪒 Waxing
+                    </option>
+                    <option value="Facial">
+                        🧖 Facial
+                    </option>
+                    <option value="Other">
+                        📦 Other
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assigned Stylist</label>
+                <select id="add-stylist">
+                    <option value="Any">
+                        👥 Any Stylist
+                    </option>
+                    {% for stylist in stylists %}
+                    <option
+                    value="{{ stylist['name'] }}">
+                        👤 {{ stylist['name'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="modal-footer">
+            <button
+            onclick="closeModal('add-modal')"
+            class="btn btn-cancel">
+                Cancel
+            </button>
+            <button onclick="addService()"
+                    class="btn btn-save">
+                ✅ Add Service
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── OPEN EDIT MODAL ───────────────────
+function openEditModal(id, name, price,
+                        duration, category,
+                        stylist, isActive,
+                        desc) {
+    // Fill all fields
+    document.getElementById('edit-id')
+        .value = id;
+    document.getElementById('edit-name')
+        .value = name;
+    document.getElementById('edit-desc')
+        .value = desc || '';
+    document.getElementById('edit-price')
+        .value = price;
+    document.getElementById('edit-duration')
+        .value = duration;
+
+    // Set category dropdown
+    const catEl = document.getElementById(
+        'edit-category');
+    catEl.value = category;
+
+    // Set stylist dropdown
+    const stylEl = document.getElementById(
+        'edit-stylist');
+    stylEl.value = stylist;
+
+    // Set active toggle
+    const activeEl = document.getElementById(
+        'edit-active');
+    activeEl.checked = isActive == 1;
+    updateStatusLabel();
+
+    // Open modal
+    document.getElementById('edit-modal')
+        .classList.add('active');
+}
+
+function updateStatusLabel() {
+    const isActive = document.getElementById(
+        'edit-active').checked;
+    document.getElementById(
+        'status-label-text').textContent =
+        isActive ? '✅ Active — AI will offer this'
+                 : '❌ Inactive — Hidden from AI';
+}
+
+function openAddModal() {
+    // Clear all add fields
+    ['add-name','add-desc',
+     'add-price','add-duration'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('add-modal')
+        .classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById(id)
+        .classList.remove('active');
+}
+
+// ── SAVE EDIT ─────────────────────────
+function saveService() {
+    const name = document.getElementById(
+        'edit-name').value.trim();
+    const price = document.getElementById(
+        'edit-price').value;
+    const duration = document.getElementById(
+        'edit-duration').value;
+
+    // Validation
+    if (!name) {
+        alert('Service name required!');
+        return;
+    }
+    if (!price || price <= 0) {
+        alert('Valid price required!');
+        return;
+    }
+    if (!duration || duration <= 0) {
+        alert('Valid duration required!');
+        return;
+    }
+
+    const data = {
+        id: parseInt(document.getElementById(
+            'edit-id').value),
+        name: name,
+        description: document.getElementById(
+            'edit-desc').value.trim(),
+        price: parseInt(price),
+        duration: parseInt(duration),
+        category: document.getElementById(
+            'edit-category').value,
+        stylist: document.getElementById(
+            'edit-stylist').value,
+        is_active: document.getElementById(
+            'edit-active').checked ? 1 : 0
+    };
+
+    console.log('Saving:', data);
+
+    fetch('/api/update-service', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('✅ Service updated!');
+            location.reload();
+        } else {
+            alert('Error: ' +
+                (result.error || 'Unknown'));
+        }
+    })
+    .catch(err => {
+        alert('Network error! Try again.');
+        console.error(err);
+    });
+}
+
+// ── ADD SERVICE ───────────────────────
+function addService() {
+    const name = document.getElementById(
+        'add-name').value.trim();
+    const price = document.getElementById(
+        'add-price').value;
+    const duration = document.getElementById(
+        'add-duration').value;
+
+    if (!name || !price || !duration) {
+        alert('Name, price aur duration ' +
+              'required hai!');
+        return;
+    }
+
+    const data = {
+        name: name,
+        description: document.getElementById(
+            'add-desc').value.trim(),
+        price: parseInt(price),
+        duration: parseInt(duration),
+        category: document.getElementById(
+            'add-category').value,
+        stylist: document.getElementById(
+            'add-stylist').value
+    };
+
+    fetch('/api/add-service', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('✅ Service added! ' +
+                  'AI will now offer this.');
+            location.reload();
+        } else {
+            alert('Error adding service!');
+        }
+    });
+}
+
+// ── DELETE SERVICE ────────────────────
+function deleteService() {
+    const name = document.getElementById(
+        'edit-name').value;
+    const id = document.getElementById(
+        'edit-id').value;
+
+    if (!confirm(
+        `"${name}" delete karna chahte ho?\n\n` +
+        `Ye booking history se nahi ` +
+        `hatega — sirf menu se.`)) {
+        return;
+    }
+
+    fetch('/api/delete-service', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({id: parseInt(id)})
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('✅ Service deleted!');
+            location.reload();
+        }
+    });
+}
+
+// Close modal on outside click
+document.querySelectorAll('.modal-overlay')
+    .forEach(overlay => {
+        overlay.addEventListener(
+            'click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+    });
+</script>
+</body>
+</html>

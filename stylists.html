@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0">
+    <title>Stylists</title>
+    <link rel="stylesheet"
+          href="/static/style.css">
+    <style>
+        .stylist-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit,
+                minmax(240px,1fr));
+            gap: 15px;
+        }
+        .stylist-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px
+                        rgba(0,0,0,0.06);
+        }
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #1a1a2e;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+        }
+        .s-name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .s-spec {
+            font-size: 12px;
+            color: #888;
+            margin: 4px 0 12px;
+        }
+        .s-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 12px;
+        }
+        .s-stat .n {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .s-stat .l {
+            font-size: 10px;
+            color: #888;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 420px;
+        }
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .fg { margin-bottom: 14px; }
+        .fg label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .fg input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        .fg input:focus {
+            border-color: #1a1a2e;
+        }
+        .mbtns {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1>🌟 ReceptionistAI</h1>
+        <p>{{ business_name }}</p>
+    </div>
+</div>
+
+<div class="nav">
+    <a href="/" class="nav-link">📊 Dashboard</a>
+    <a href="/customers" class="nav-link">
+        👥 Customers</a>
+    <a href="/services" class="nav-link">
+        ✂️ Services</a>
+    <a href="/stylists" class="nav-link active">
+        👨‍💼 Stylists</a>
+    <a href="/cafe" class="nav-link">
+        ☕ Cafe</a>
+    <a href="/analytics" class="nav-link">
+        📈 Analytics</a>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>👨‍💼 Stylist Team</h2>
+        <button onclick="openAdd()"
+                class="btn btn-primary">
+            ➕ Add Stylist
+        </button>
+    </div>
+
+    <div class="stylist-grid">
+        {% for s in stylists %}
+        <div class="stylist-card">
+            <div class="avatar">
+                {{ s.name[0] }}
+            </div>
+            <div class="s-name">{{ s.name }}</div>
+            <div class="s-spec">
+                {{ s.speciality or 'General' }}
+                • {{ s.experience or 'N/A' }}
+            </div>
+            <div class="s-stats">
+                <div class="s-stat">
+                    <div class="n">
+                        {{ s.today_bookings }}
+                    </div>
+                    <div class="l">Today</div>
+                </div>
+                <div class="s-stat">
+                    <div class="n">
+                        ₹{{ s.month_revenue }}
+                    </div>
+                    <div class="l">This Month</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button
+                onclick="openEdit(
+                    {{ s.id }},
+                    '{{ s.name }}',
+                    '{{ s.speciality }}',
+                    '{{ s.experience }}')"
+                class="btn btn-small btn-primary"
+                style="flex:1">✏️ Edit</button>
+                <button
+                onclick="toggleS(
+                    {{ s.id }},{{ s.is_active }})"
+                class="btn btn-small
+                {% if s.is_active %}btn-danger
+                {% else %}btn-success{% endif %}"
+                style="flex:1">
+                {% if s.is_active %}Off
+                {% else %}On{% endif %}
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-m">
+    <div class="modal">
+        <h3>✏️ Edit Stylist</h3>
+        <input type="hidden" id="eid">
+        <div class="fg">
+            <label>Name</label>
+            <input id="en" type="text">
+        </div>
+        <div class="fg">
+            <label>Speciality</label>
+            <input id="es" type="text"
+                   placeholder="Balayage, Cuts">
+        </div>
+        <div class="fg">
+            <label>Experience</label>
+            <input id="ee" type="text"
+                   placeholder="5 years">
+        </div>
+        <div class="mbtns">
+            <button onclick="closeM('edit-m')"
+                    class="btn"
+                    style="background:#f0f0f0;
+                           flex:1">Cancel</button>
+            <button onclick="saveEdit()"
+                    class="btn btn-primary"
+                    style="flex:2">✅ Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="add-m">
+    <div class="modal">
+        <h3>➕ Add Stylist</h3>
+        <div class="fg">
+            <label>Name</label>
+            <input id="an" type="text"
+                   placeholder="Stylist name">
+        </div>
+        <div class="fg">
+            <label>Speciality</label>
+            <input id="as_" type="text"
+                   placeholder="Balayage, Cuts">
+        </div>
+        <div class="fg">
+            <label>Experience</label>
+            <input id="ae" type="text"
+                   placeholder="3 years">
+        </div>
+        <div class="mbtns">
+            <button onclick="closeM('add-m')"
+                    class="btn"
+                    style="background:#f0f0f0;
+                           flex:1">Cancel</button>
+            <button onclick="saveAdd()"
+                    class="btn btn-primary"
+                    style="flex:2">✅ Add</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEdit(id,name,spec,exp) {
+    document.getElementById('eid').value=id;
+    document.getElementById('en').value=name;
+    document.getElementById('es').value=spec||'';
+    document.getElementById('ee').value=exp||'';
+    document.getElementById('edit-m')
+        .classList.add('active');
+}
+function openAdd() {
+    document.getElementById('add-m')
+        .classList.add('active');
+}
+function closeM(id) {
+    document.getElementById(id)
+        .classList.remove('active');
+}
+function saveEdit() {
+    fetch('/api/update-stylist',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            id:document.getElementById('eid').value,
+            name:document.getElementById('en').value,
+            speciality:document.getElementById(
+                'es').value,
+            experience:document.getElementById(
+                'ee').value
+        })
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){
+            alert('✅ Updated!');
+            location.reload();
+        }
+    });
+}
+function saveAdd() {
+    const name = document.getElementById(
+        'an').value;
+    if(!name){alert('Name required!');return;}
+    fetch('/api/add-stylist',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            name:name,
+            speciality:document.getElementById(
+                'as_').value,
+            experience:document.getElementById(
+                'ae').value
+        })
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){
+            alert('✅ Added!');
+            location.reload();
+        }
+    });
+}
+function toggleS(id,current) {
+    const msg = current ?
+        'Deactivate stylist?' :
+        'Activate stylist?';
+    if(!confirm(msg))return;
+    fetch('/api/toggle-stylist',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            id:id,
+            is_active:current?0:1
+        })
+    }).then(r=>r.json()).then(d=>{
+        if(d.success)location.reload();
+    });
+}
+document.querySelectorAll('.modal-overlay')
+    .forEach(o=>{
+        o.addEventListener('click',function(e){
+            if(e.target===this)
+                this.classList.remove('active');
+        });
+    });
+</script>
+</body>
+</html>

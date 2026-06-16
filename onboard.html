@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0">
+    <title>New Business Setup</title>
+    <link rel="stylesheet"
+          href="/static/style.css">
+    <style>
+        .onboard-container {
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: #eee;
+            z-index: 0;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            z-index: 1;
+        }
+        .step-num {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #eee;
+            color: #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .step.active .step-num {
+            background: #1a1a2e;
+            color: white;
+        }
+        .step.done .step-num {
+            background: #28a745;
+            color: white;
+        }
+        .step-label {
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+        }
+        .step.active .step-label {
+            color: #1a1a2e;
+            font-weight: 700;
+        }
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px
+                        rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .form-card h2 {
+            font-size: 20px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+        .form-card p {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+        .fg { margin-bottom: 16px; }
+        .fg label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .fg input,
+        .fg select,
+        .fg textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .fg input:focus,
+        .fg select:focus,
+        .fg textarea:focus {
+            border-color: #1a1a2e;
+        }
+        .frow {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .type-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .type-card {
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .type-card:hover {
+            border-color: #1a1a2e;
+        }
+        .type-card.selected {
+            border-color: #1a1a2e;
+            background: #f0f2f8;
+        }
+        .type-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .type-name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .type-desc {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .success-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .success-icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+        .checklist {
+            text-align: left;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+        }
+        .check-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1>🌟 ReceptionistAI</h1>
+        <p>New Business Setup</p>
+    </div>
+</div>
+
+<div class="onboard-container">
+
+    <!-- Step Indicators -->
+    <div class="step-indicator">
+        <div class="step active" id="s1">
+            <div class="step-num">1</div>
+            <div class="step-label">
+                Business Type
+            </div>
+        </div>
+        <div class="step" id="s2">
+            <div class="step-num">2</div>
+            <div class="step-label">
+                Basic Info
+            </div>
+        </div>
+        <div class="step" id="s3">
+            <div class="step-num">3</div>
+            <div class="step-label">
+                Services
+            </div>
+        </div>
+        <div class="step" id="s4">
+            <div class="step-num">4</div>
+            <div class="step-label">
+                Go Live
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 1: Business Type -->
+    <div id="step1" class="form-card">
+        <h2>👋 Welcome!</h2>
+        <p>What type of business are you setting up?</p>
+
+        <div class="type-grid">
+            <div class="type-card"
+                 id="type-salon"
+                 onclick="selectType('salon')">
+                <div class="type-icon">✂️</div>
+                <div class="type-name">Salon</div>
+                <div class="type-desc">
+                    Hair salon, beauty parlour,
+                    spa, nail studio
+                </div>
+            </div>
+            <div class="type-card"
+                 id="type-cafe"
+                 onclick="selectType('cafe')">
+                <div class="type-icon">☕</div>
+                <div class="type-name">
+                    Cafe / Restaurant
+                </div>
+                <div class="type-desc">
+                    Coffee shop, cafe,
+                    small restaurant
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-buttons"
+             style="margin-top:24px">
+            <button onclick="nextStep(2)"
+                    class="btn btn-primary">
+                Next →
+            </button>
+        </div>
+    </div>
+
+    <!-- STEP 2: Basic Info -->
+    <div id="step2" class="form-card"
+         style="display:none">
+        <h2>📋 Business Information</h2>
+        <p>Tell us about the business</p>
+
+        <div class="fg">
+            <label>Business Name *</label>
+            <input type="text" id="biz-name"
+                   placeholder="e.g. Glamour Studio">
+        </div>
+
+        <div class="frow">
+            <div class="fg">
+                <label>Owner Name *</label>
+                <input type="text"
+                       id="owner-name"
+                       placeholder="Owner ka naam">
+            </div>
+            <div class="fg">
+                <label>WhatsApp Number *</label>
+                <input type="tel"
+                       id="owner-phone"
+                       placeholder="919876543210">
+            </div>
+        </div>
+
+        <div class="fg">
+            <label>Address</label>
+            <input type="text"
+                   id="biz-address"
+                   placeholder="Full address">
+        </div>
+
+        <div class="frow">
+            <div class="fg">
+                <label>Opening Time</label>
+                <input type="time"
+                       id="open-time"
+                       value="10:00">
+            </div>
+            <div class="fg">
+                <label>Closing Time</label>
+                <input type="time"
+                       id="close-time"
+                       value="20:00">
+            </div>
+        </div>
+
+        <div class="fg">
+            <label>Closed On</label>
+            <select id="closed-day">
+                <option value="Sunday">Sunday</option>
+                <option value="Monday">Monday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="None">
+                    Open all days
+                </option>
+            </select>
+        </div>
+
+        <div class="fg">
+            <label>Google Review Link</label>
+            <input type="url"
+                   id="review-link"
+                   placeholder="https://g.page/...">
+        </div>
+
+        <div class="nav-buttons">
+            <button onclick="nextStep(1)"
+                    class="btn"
+                    style="background:#f0f0f0">
+                ← Back
+            </button>
+            <button onclick="nextStep(3)"
+                    class="btn btn-primary">
+                Next →
+            </button>
+        </div>
+    </div>
+
+    <!-- STEP 3: Services -->
+    <div id="step3" class="form-card"
+         style="display:none">
+        <h2>✂️ Services Setup</h2>
+        <p>Add your main services
+           (you can add more later)</p>
+
+        <div id="services-list">
+            <!-- Services added here -->
+        </div>
+
+        <button onclick="addServiceRow()"
+                class="btn"
+                style="background:#f0f0f0;
+                       width:100%;
+                       margin-bottom:16px">
+            ➕ Add Service
+        </button>
+
+        <div class="nav-buttons">
+            <button onclick="nextStep(2)"
+                    class="btn"
+                    style="background:#f0f0f0">
+                ← Back
+            </button>
+            <button onclick="submitOnboarding()"
+                    class="btn btn-primary">
+                🚀 Go Live!
+            </button>
+        </div>
+    </div>
+
+    <!-- STEP 4: Success -->
+    <div id="step4" class="form-card"
+         style="display:none">
+        <div class="success-screen">
+            <div class="success-icon">🎉</div>
+            <h2>Business is LIVE!</h2>
+            <p style="margin-top:8px">
+                AI receptionist is now active
+            </p>
+
+            <div class="checklist">
+                <div class="check-item">
+                    ✅ Business profile created
+                </div>
+                <div class="check-item">
+                    ✅ AI trained on your services
+                </div>
+                <div class="check-item">
+                    ✅ Dashboard ready
+                </div>
+                <div class="check-item">
+                    ✅ WhatsApp AI active
+                </div>
+                <div class="check-item">
+                    ⏳ QR standee — we'll send
+                    in 2-3 days
+                </div>
+            </div>
+
+            <div style="display:flex;
+                        gap:12px;
+                        justify-content:center;
+                        margin-top:20px">
+                <a href="/"
+                   class="btn btn-primary">
+                    📊 Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let selectedType = '';
+let serviceCount = 0;
+
+function selectType(type) {
+    selectedType = type;
+    document.querySelectorAll('.type-card')
+        .forEach(c => c.classList.remove(
+            'selected'));
+    document.getElementById(
+        `type-${type}`).classList.add('selected');
+}
+
+function nextStep(step) {
+    // Validation
+    if (step === 2 && !selectedType) {
+        alert('Business type select karo!');
+        return;
+    }
+    if (step === 3) {
+        const name = document.getElementById(
+            'biz-name').value;
+        const phone = document.getElementById(
+            'owner-phone').value;
+        if (!name || !phone) {
+            alert('Name aur phone required!');
+            return;
+        }
+        // Add default service row
+        if (serviceCount === 0) {
+            addServiceRow();
+        }
+    }
+
+    // Hide all steps
+    document.querySelectorAll(
+        '[id^="step"]').forEach(s => {
+        s.style.display = 'none';
+    });
+
+    // Show target step
+    document.getElementById(
+        `step${step}`).style.display = 'block';
+
+    // Update indicators
+    for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(
+            `s${i}`);
+        el.classList.remove('active', 'done');
+        if (i < step) el.classList.add('done');
+        if (i === step) el.classList.add('active');
+    }
+}
+
+function addServiceRow() {
+    serviceCount++;
+    const div = document.createElement('div');
+    div.id = `svc-${serviceCount}`;
+    div.style.cssText = (
+        'background:#f8f9fa;border-radius:10px;' +
+        'padding:14px;margin-bottom:10px;' +
+        'display:grid;' +
+        'grid-template-columns:2fr 1fr 1fr auto;' +
+        'gap:10px;align-items:center');
+
+    div.innerHTML = `
+        <input type="text"
+               placeholder="Service name"
+               id="svc-name-${serviceCount}"
+               style="padding:8px 12px;
+                      border:2px solid #eee;
+                      border-radius:8px;
+                      font-size:13px;
+                      outline:none">
+        <input type="number"
+               placeholder="Price ₹"
+               id="svc-price-${serviceCount}"
+               style="padding:8px 12px;
+                      border:2px solid #eee;
+                      border-radius:8px;
+                      font-size:13px;
+                      outline:none">
+        <input type="number"
+               placeholder="Mins"
+               id="svc-dur-${serviceCount}"
+               style="padding:8px 12px;
+                      border:2px solid #eee;
+                      border-radius:8px;
+                      font-size:13px;
+                      outline:none">
+        <button
+        onclick="document.getElementById(
+            'svc-${serviceCount}')
+            .remove();serviceCount--"
+        style="background:#dc3545;
+               color:white;
+               border:none;
+               border-radius:6px;
+               padding:8px 12px;
+               cursor:pointer">
+            🗑️
+        </button>
+    `;
+    document.getElementById(
+        'services-list').appendChild(div);
+}
+
+function submitOnboarding() {
+    // Collect all services
+    const services = [];
+    for (let i = 1; i <= serviceCount + 5; i++) {
+        const nameEl = document.getElementById(
+            `svc-name-${i}`);
+        const priceEl = document.getElementById(
+            `svc-price-${i}`);
+        const durEl = document.getElementById(
+            `svc-dur-${i}`);
+        if (nameEl && nameEl.value) {
+            services.push({
+                name: nameEl.value,
+                price: parseInt(
+                    priceEl?.value || 0),
+                duration: parseInt(
+                    durEl?.value || 30)
+            });
+        }
+    }
+
+    const data = {
+        business_type: selectedType,
+        business_name: document.getElementById(
+            'biz-name').value,
+        owner_name: document.getElementById(
+            'owner-name').value,
+        owner_phone: document.getElementById(
+            'owner-phone').value,
+        address: document.getElementById(
+            'biz-address').value,
+        open_time: document.getElementById(
+            'open-time').value,
+        close_time: document.getElementById(
+            'close-time').value,
+        closed_day: document.getElementById(
+            'closed-day').value,
+        review_link: document.getElementById(
+            'review-link').value,
+        services: services
+    };
+
+    fetch('/api/onboard-business', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            nextStep(4);
+        } else {
+            alert('Error: ' + d.error);
+        }
+    });
+}
+</script>
+</body>
+</html>

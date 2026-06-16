@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0">
+    <title>Cafe — {{ business_name }}</title>
+    <link rel="stylesheet"
+          href="/static/style.css">
+    <style>
+        .orders-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit,
+                minmax(280px,1fr));
+            gap: 15px;
+        }
+        .order-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid #ffc107;
+            box-shadow: 0 2px 8px
+                        rgba(0,0,0,0.06);
+        }
+        .order-card.ready {
+            border-left-color: #28a745;
+        }
+        .order-card.completed {
+            border-left-color: #ccc;
+            opacity: 0.6;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit,
+                minmax(220px,1fr));
+            gap: 12px;
+        }
+        .menu-card {
+            background: white;
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 6px
+                        rgba(0,0,0,0.05);
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .menu-card:hover {
+            border-color: #1a1a2e;
+        }
+        .menu-card.inactive {
+            opacity: 0.4;
+        }
+        .vd {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+        .veg { background: #28a745; }
+        .nveg { background: #dc3545; }
+        .item-info { flex: 1; }
+        .item-name {
+            font-weight: 700;
+            font-size: 14px;
+        }
+        .item-meta {
+            font-size: 11px;
+            color: #888;
+            margin-top: 3px;
+        }
+        .item-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        .item-price {
+            font-weight: 800;
+            font-size: 16px;
+            color: #1a1a2e;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 92%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            color: #1a1a2e;
+        }
+        .fg { margin-bottom: 14px; }
+        .fg label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .fg input,
+        .fg select,
+        .fg textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .fg input:focus,
+        .fg select:focus {
+            border-color: #1a1a2e;
+        }
+        .frow {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .mfooter {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid #f0f0f0;
+        }
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            padding: 10px 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1>🌟 ReceptionistAI</h1>
+        <p>{{ business_name }}</p>
+    </div>
+    <div class="header-right">
+        <span class="live-badge">● LIVE</span>
+    </div>
+</div>
+
+<div class="nav">
+    <a href="/" class="nav-link">
+        📊 Dashboard</a>
+    <a href="/customers" class="nav-link">
+        👥 Customers</a>
+    <a href="/services" class="nav-link">
+        ✂️ Services</a>
+    <a href="/stylists" class="nav-link">
+        👨‍💼 Stylists</a>
+    <a href="/cafe" class="nav-link active">
+        ☕ Cafe</a>
+    <a href="/analytics" class="nav-link">
+        📈 Analytics</a>
+</div>
+
+<!-- STATS -->
+<div class="stats-grid">
+    <div class="stat-card orange">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-number">
+            {{ pending_count }}
+        </div>
+        <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-number">
+            {{ completed_count }}
+        </div>
+        <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-icon">💰</div>
+        <div class="stat-number">
+            ₹{{ todays_revenue }}
+        </div>
+        <div class="stat-label">Revenue</div>
+    </div>
+</div>
+
+<!-- LIVE ORDERS -->
+<div class="section">
+    <div class="section-header">
+        <h2>📋 Live Orders</h2>
+        <button onclick="location.reload()"
+                class="btn btn-primary btn-small">
+            🔄 Refresh
+        </button>
+    </div>
+    {% if orders %}
+    <div class="orders-grid">
+        {% for o in orders %}
+        <div class="order-card
+             {{ o['status'] }}">
+            <div style="display:flex;
+                        justify-content:
+                        space-between;
+                        margin-bottom:8px">
+                <strong>#{{ o['id'] }}</strong>
+                <span style="font-size:12px;
+                             color:#888">
+                    {{ o['created_at'][11:16] }}
+                </span>
+            </div>
+            <div style="font-size:13px;
+                        color:#555;
+                        margin-bottom:8px">
+                👤 {{ o['customer_name'] }}
+                {% if o['table_number'] %}
+                | 🪑 Table {{ o['table_number'] }}
+                {% endif %}
+            </div>
+            <div style="background:#f8f9fa;
+                        border-radius:8px;
+                        padding:10px;
+                        font-size:13px;
+                        margin-bottom:12px;
+                        white-space:pre-line">
+                {{ o['items'] }}
+            </div>
+            <div style="display:flex;gap:8px">
+                {% if o['status']=='pending' %}
+                <button
+                onclick="markReady(
+                    {{ o['id'] }},
+                    '{{ o['customer_phone'] }}',
+                    '{{ o['customer_name'] }}')"
+                class="btn btn-small btn-primary"
+                style="flex:1">
+                    ✅ Mark Ready
+                </button>
+                {% elif o['status']=='ready' %}
+                <button
+                onclick="markDone({{ o['id'] }})"
+                class="btn btn-small btn-success"
+                style="flex:1">
+                    ☕ Collected
+                </button>
+                {% else %}
+                <span style="color:#888;
+                             font-size:13px">
+                    ✅ Completed
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>☕ No orders yet today</p>
+        <p style="font-size:12px;
+                  color:#aaa;margin-top:8px">
+            Orders from WhatsApp appear here
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- MENU MANAGEMENT -->
+<div class="section">
+    <div class="section-header">
+        <h2>🍽️ Menu Management</h2>
+        <button onclick="openAddItem()"
+                class="btn btn-primary">
+            ➕ Add Item
+        </button>
+    </div>
+
+    <!-- Category Filter -->
+    <div style="display:flex;gap:8px;
+                margin-bottom:16px;
+                flex-wrap:wrap">
+        <button onclick="filterMenu('all')"
+                class="btn btn-small btn-primary"
+                id="filter-all">
+            All
+        </button>
+        <button onclick="filterMenu('Coffee')"
+                class="btn btn-small"
+                style="background:#f0f0f0"
+                id="filter-Coffee">
+            ☕ Coffee
+        </button>
+        <button onclick="filterMenu('Bakery')"
+                class="btn btn-small"
+                style="background:#f0f0f0"
+                id="filter-Bakery">
+            🥐 Bakery
+        </button>
+        <button onclick="filterMenu('Food')"
+                class="btn btn-small"
+                style="background:#f0f0f0"
+                id="filter-Food">
+            🍳 Food
+        </button>
+        <button onclick="filterMenu('Drinks')"
+                class="btn btn-small"
+                style="background:#f0f0f0"
+                id="filter-Drinks">
+            🥤 Drinks
+        </button>
+    </div>
+
+    <div class="menu-grid" id="menu-grid">
+        {% for item in menu %}
+        <div class="menu-card
+             {% if not item['is_available'] %}
+             inactive{% endif %}"
+             data-category="{{ item['category'] }}"
+             data-id="{{ item['id'] }}">
+            <div class="item-info">
+                <span class="vd
+                {% if item['is_veg'] %}veg
+                {% else %}nveg{% endif %}">
+                </span>
+                <span class="item-name">
+                    {{ item['name'] }}
+                </span>
+                <div class="item-meta">
+                    {{ item['category'] }} •
+                    {{ item['prep_time_mins'] }} mins
+                    {% if item['description'] %}
+                    • {{ item['description'] }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="item-right">
+                <span class="item-price">
+                    ₹{{ item['price'] }}
+                </span>
+                <button
+                onclick="openEditItem(
+                    {{ item['id'] }},
+                    `{{ item['name'] }}`,
+                    {{ item['price'] }},
+                    `{{ item['category'] }}`,
+                    `{{ item['description'] or '' }}`,
+                    {{ item['is_veg'] }},
+                    {{ item['is_available'] }},
+                    {{ item['prep_time_mins'] }}
+                )"
+                class="btn btn-small btn-primary"
+                style="font-size:11px;
+                       padding:4px 10px">
+                    ✏️ Edit
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- EDIT MENU ITEM MODAL -->
+<div class="modal-overlay" id="edit-item-modal">
+    <div class="modal">
+        <h3>✏️ Edit Menu Item</h3>
+        <input type="hidden" id="ei-id">
+
+        <div class="fg">
+            <label>Item Name *</label>
+            <input type="text" id="ei-name"
+                   placeholder="e.g. Cold Brew">
+        </div>
+
+        <div class="fg">
+            <label>Description</label>
+            <input type="text" id="ei-desc"
+                   placeholder="Short description">
+        </div>
+
+        <div class="frow">
+            <div class="fg">
+                <label>Price (₹) *</label>
+                <input type="number"
+                       id="ei-price"
+                       min="0">
+            </div>
+            <div class="fg">
+                <label>Prep Time (mins)</label>
+                <input type="number"
+                       id="ei-prep"
+                       min="1">
+            </div>
+        </div>
+
+        <div class="fg">
+            <label>Category</label>
+            <select id="ei-category">
+                <option value="Coffee">
+                    ☕ Coffee
+                </option>
+                <option value="Tea">
+                    🍵 Tea
+                </option>
+                <option value="Bakery">
+                    🥐 Bakery
+                </option>
+                <option value="Food">
+                    🍳 Food
+                </option>
+                <option value="Drinks">
+                    🥤 Cold Drinks
+                </option>
+                <option value="Desserts">
+                    🍰 Desserts
+                </option>
+                <option value="Snacks">
+                    🍿 Snacks
+                </option>
+                <option value="Other">
+                    📦 Other
+                </option>
+            </select>
+        </div>
+
+        <div class="fg">
+            <label>Type</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio"
+                           name="ei-veg"
+                           value="1"
+                           id="ei-veg">
+                    🟢 Veg
+                </label>
+                <label class="radio-option">
+                    <input type="radio"
+                           name="ei-veg"
+                           value="0"
+                           id="ei-nveg">
+                    🔴 Non-Veg
+                </label>
+            </div>
+        </div>
+
+        <div class="fg">
+            <label>Availability</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio"
+                           name="ei-avail"
+                           value="1"
+                           id="ei-avail-yes">
+                    ✅ Available
+                </label>
+                <label class="radio-option">
+                    <input type="radio"
+                           name="ei-avail"
+                           value="0"
+                           id="ei-avail-no">
+                    ❌ Unavailable
+                </label>
+            </div>
+        </div>
+
+        <div class="mfooter">
+            <button
+            onclick="closeM('edit-item-modal')"
+            class="btn"
+            style="background:#f0f0f0;flex:1">
+                Cancel
+            </button>
+            <button onclick="deleteItem()"
+                    class="btn"
+                    style="background:#dc3545;
+                           color:white;flex:1">
+                🗑️ Delete
+            </button>
+            <button onclick="saveItem()"
+                    class="btn btn-primary"
+                    style="flex:2">
+                ✅ Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD MENU ITEM MODAL -->
+<div class="modal-overlay" id="add-item-modal">
+    <div class="modal">
+        <h3>➕ Add Menu Item</h3>
+
+        <div class="fg">
+            <label>Item Name *</label>
+            <input type="text" id="ai-name"
+                   placeholder="e.g. Matcha Latte">
+        </div>
+
+        <div class="fg">
+            <label>Description</label>
+            <input type="text" id="ai-desc"
+                   placeholder="Short description">
+        </div>
+
+        <div class="frow">
+            <div class="fg">
+                <label>Price (₹) *</label>
+                <input type="number"
+                       id="ai-price"
+                       placeholder="200"
+                       min="0">
+            </div>
+            <div class="fg">
+                <label>Prep Time (mins)</label>
+                <input type="number"
+                       id="ai-prep"
+                       placeholder="5"
+                       min="1">
+            </div>
+        </div>
+
+        <div class="fg">
+            <label>Category</label>
+            <select id="ai-category">
+                <option value="Coffee">
+                    ☕ Coffee
+                </option>
+                <option value="Tea">
+                    🍵 Tea
+                </option>
+                <option value="Bakery">
+                    🥐 Bakery
+                </option>
+                <option value="Food">
+                    🍳 Food
+                </option>
+                <option value="Drinks">
+                    🥤 Cold Drinks
+                </option>
+                <option value="Desserts">
+                    🍰 Desserts
+                </option>
+                <option value="Snacks">
+                    🍿 Snacks
+                </option>
+                <option value="Other">
+                    📦 Other
+                </option>
+            </select>
+        </div>
+
+        <div class="fg">
+            <label>Type</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio"
+                           name="ai-veg"
+                           value="1"
+                           checked>
+                    🟢 Veg
+                </label>
+                <label class="radio-option">
+                    <input type="radio"
+                           name="ai-veg"
+                           value="0">
+                    🔴 Non-Veg
+                </label>
+            </div>
+        </div>
+
+        <div class="mfooter">
+            <button
+            onclick="closeM('add-item-modal')"
+            class="btn"
+            style="background:#f0f0f0;flex:1">
+                Cancel
+            </button>
+            <button onclick="addItem()"
+                    class="btn btn-primary"
+                    style="flex:2">
+                ✅ Add to Menu
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── ORDERS ────────────────────────────
+function markReady(id, phone, name) {
+    fetch('/api/order-ready', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            order_id: id,
+            phone: phone,
+            name: name
+        })
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            alert('✅ Customer notified!');
+            location.reload();
+        }
+    });
+}
+
+function markDone(id) {
+    fetch('/api/order-complete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({order_id: id})
+    }).then(r => r.json()).then(d => {
+        if (d.success) location.reload();
+    });
+}
+
+// ── MENU FILTER ───────────────────────
+function filterMenu(cat) {
+    const cards = document.querySelectorAll(
+        '.menu-card');
+    cards.forEach(card => {
+        if (cat === 'all' ||
+            card.dataset.category === cat) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Update button styles
+    document.querySelectorAll(
+        '[id^="filter-"]').forEach(btn => {
+        btn.style.background = '#f0f0f0';
+        btn.style.color = '#333';
+    });
+    const active = document.getElementById(
+        `filter-${cat}`);
+    if (active) {
+        active.style.background = '#1a1a2e';
+        active.style.color = 'white';
+    }
+}
+
+// ── EDIT ITEM ─────────────────────────
+function openEditItem(id, name, price,
+                       category, desc,
+                       isVeg, isAvail, prep) {
+    document.getElementById('ei-id').value = id;
+    document.getElementById('ei-name').value = name;
+    document.getElementById('ei-desc').value = desc;
+    document.getElementById('ei-price').value = price;
+    document.getElementById('ei-prep').value = prep;
+    document.getElementById(
+        'ei-category').value = category;
+
+    document.getElementById('ei-veg').checked =
+        isVeg == 1;
+    document.getElementById('ei-nveg').checked =
+        isVeg != 1;
+    document.getElementById(
+        'ei-avail-yes').checked = isAvail == 1;
+    document.getElementById(
+        'ei-avail-no').checked = isAvail != 1;
+
+    document.getElementById('edit-item-modal')
+        .classList.add('active');
+}
+
+function openAddItem() {
+    ['ai-name','ai-desc',
+     'ai-price','ai-prep'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('add-item-modal')
+        .classList.add('active');
+}
+
+function closeM(id) {
+    document.getElementById(id)
+        .classList.remove('active');
+}
+
+function saveItem() {
+    const name = document.getElementById(
+        'ei-name').value.trim();
+    const price = document.getElementById(
+        'ei-price').value;
+
+    if (!name || !price) {
+        alert('Name and price required!');
+        return;
+    }
+
+    const vegVal = document.querySelector(
+        'input[name="ei-veg"]:checked');
+    const availVal = document.querySelector(
+        'input[name="ei-avail"]:checked');
+
+    fetch('/api/update-menu-item', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            id: parseInt(document.getElementById(
+                'ei-id').value),
+            name: name,
+            description: document.getElementById(
+                'ei-desc').value,
+            price: parseInt(price),
+            prep_time_mins: parseInt(
+                document.getElementById(
+                    'ei-prep').value || 5),
+            category: document.getElementById(
+                'ei-category').value,
+            is_veg: vegVal ?
+                parseInt(vegVal.value) : 1,
+            is_available: availVal ?
+                parseInt(availVal.value) : 1
+        })
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            alert('✅ Menu updated!');
+            location.reload();
+        }
+    });
+}
+
+function addItem() {
+    const name = document.getElementById(
+        'ai-name').value.trim();
+    const price = document.getElementById(
+        'ai-price').value;
+
+    if (!name || !price) {
+        alert('Name and price required!');
+        return;
+    }
+
+    const vegVal = document.querySelector(
+        'input[name="ai-veg"]:checked');
+
+    fetch('/api/add-menu-item', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: name,
+            description: document.getElementById(
+                'ai-desc').value,
+            price: parseInt(price),
+            prep_time_mins: parseInt(
+                document.getElementById(
+                    'ai-prep').value || 5),
+            category: document.getElementById(
+                'ai-category').value,
+            is_veg: vegVal ?
+                parseInt(vegVal.value) : 1
+        })
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            alert('✅ Item added to menu!');
+            location.reload();
+        }
+    });
+}
+
+function deleteItem() {
+    const name = document.getElementById(
+        'ei-name').value;
+    const id = document.getElementById(
+        'ei-id').value;
+
+    if (!confirm(`Delete "${name}" from menu?`)) {
+        return;
+    }
+
+    fetch('/api/delete-menu-item', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({id: parseInt(id)})
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            alert('✅ Item deleted!');
+            location.reload();
+        }
+    });
+}
+
+// Close on outside click
+document.querySelectorAll('.modal-overlay')
+    .forEach(o => {
+        o.addEventListener('click', function(e) {
+            if (e.target === this)
+                this.classList.remove('active');
+        });
+    });
+
+// Auto refresh orders every 30 seconds
+setInterval(() => location.reload(), 30000);
+</script>
+</body>
+</html>
