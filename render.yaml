@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: receptionistai
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: PHONE_NUMBER_ID
+        sync: false
+      - key: VERIFY_TOKEN
+        value: receptionistai2026
+      - key: BUSINESS_NAME
+        sync: false
+      - key: OWNER_WHATSAPP
+        sync: false
+      - key: GOOGLE_REVIEW_URL
+        sync: false
