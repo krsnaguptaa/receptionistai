@@ -8,6 +8,24 @@ from retention_engine import (run_churn_campaigns,
 from review_engine import send_post_visit_message
 from whatsapp import send_reminder
 from datetime import datetime
+import requests
+import os
+
+def keep_alive():
+    try:
+        url = os.environ.get(
+            'RENDER_URL', '')
+        if url:
+            requests.get(
+                f"https://{url}/",
+                timeout=10)
+            print("💓 Keep alive ping sent")
+    except Exception as e:
+        print(f"Keep alive error: {e}")
+
+# Add to run_scheduler():
+# Ping every 10 minutes
+schedule.every(10).minutes.do(keep_alive)
 
 def send_daily_reminders():
     bookings = get_todays_bookings()
