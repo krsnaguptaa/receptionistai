@@ -9,7 +9,10 @@ from memory_engine import build_customer_context
 from safety_engine import validate_ai_response
 import re
 
+# Initialize Groq client
 client = Groq(api_key=GROQ_API_KEY)
+
+# ── INTENT DETECTION ──────────────────
 
 def detect_booking_intent(message):
     keywords = [
@@ -110,60 +113,66 @@ def extract_time_from_message(message):
             hour = int(groups[0])
             if len(groups) > 1 and groups[-1]:
                 period = groups[-1]
-                if (period == 'pm'
-                        and hour != 12):
+                if period == 'pm' and hour != 12:
                     hour += 12
-                elif (period == 'am'
-                        and hour == 12):
+                elif period == 'am' and hour == 12:
                     hour = 0
             return f"{hour:02d}:00"
     return None
 
+# ── MAIN AI RESPONSE ──────────────────
+
 def get_ai_response(phone, message):
     try:
-        print(f"🤖 Processing: {message}")
+        print(f"🤖 Groq processing: {message}")
 
         customer_ctx = build_customer_context(phone)
         services_text = get_services_formatted()
 
-        # Get customer name safely
-        customer_name = "Aap"
-        if (customer_ctx and
-                not customer_ctx.get('is_new') and
-                customer_ctx.get('name')):
-            customer_name = customer_ctx['name']
+        system_prompt = f"""Tu ek friendly AI receptionist hai {BUSINESS_NAME} ke liye Delhi mein.
 
-        system_prompt = (
-            f"Tu ek friendly AI receptionist hai "
-            f"{BUSINESS_NAME} ke liye Delhi mein.\n\n"
-            f"LANGUAGE — HINGLISH:\n"
-            f"Hindi aur English mix karo naturally.\n"
-            f"Jaise Delhi ke log baat karte hain.\n"
-            f"WhatsApp ke liye short rakho — max 4 lines.\n"
-            f"Emojis thode use karo.\n\n"
-            f"BUSINESS:\n"
-            f"Naam: {BUSINESS_NAME}\n"
-            f"Location: {BUSINESS_LOCATION}\n"
-            f"Timings: {BUSINESS_HOURS}\n"
-            f"Closed: {', '.join(BUSINESS_CLOSED)}\n\n"
-            f"SERVICES:\n"
-            f"{services_text}\n\n"
-            f"CUSTOMER INFO:\n"
-            f"{customer_ctx['context_text']}\n\n"
-            f"RULES:\n"
-            f"- Price sirf list se batao\n"
-            f"- Jo service nahi: clearly bolo\n"
-            f"- Booking ke liye date time name pooch lo\n"
-            f"- Naam nahi pata: 'Aap' use karo\n"
-            f"- Kabhi 'Customer' mat likho\n"
-            f"- Complaint: calm raho\n"
-            f"- Booking confirm: "
-            f"'Main check karke confirm karta hoon!'\n\n"
-            f"BOOKING FLOW:\n"
-            f"Service pooch lo, date pooch lo, "
-            f"time pooch lo, naam pooch lo, confirm karo.\n\n"
-            f"Warm, helpful, local Delhi feel."
-        )
+LANGUAGE — HINGLISH:
+Hindi aur English mix karo naturally.
+Jaise Delhi ke log actually baat karte hain.
+Example: "Haan bilkul! Amit kal free hai 😊"
+WhatsApp ke liye SHORT rakho — max 4 lines.
+Emojis thode use karo — zyada nahi.
+
+BUSINESS INFORMATION:
+Naam: {BUSINESS_NAME}
+Location: {BUSINESS_LOCATION}
+Timings: {BUSINESS_HOURS}
+Closed: {', '.join(BUSINESS_CLOSED)}
+
+SERVICES AND PRICES:
+{services_text}
+
+CUSTOMER PROFILE:
+{customer_ctx['context_text']}
+
+STRICT RULES — KABHI MAT TODNA:
+1. Price SIRF upar wali list se batao. Khud se koi price mat banao.
+2. Jo service list mein nahi — "Ye service nahi hai humare paas"
+3. Booking ke liye: "Main check karke confirm karta hoon! ✅"
+4. Complaint aaye to calm raho, apologize karo
+5. Agar kuch nahi pata: "Main owner se confirm karke batata hoon!"
+6. KABHI BHAI MAT BOLO — professional raho
+7. Customer ka naam nahi pata toh:
+   "Aap" use karo — kabhi "Customer" mat likho
+   Booking ke time naam pooch lo:
+   "Aapka naam kya hai?" 
+
+BOOKING FLOW:
+Jab customer book karna chahe:
+1. Kaunsi service?
+2. Kaunsi date?
+3. Kaunsa time?
+4. Name? (naye customer ke liye)
+5. "Main check karke confirm karta hoon! ✅"
+
+PERSONALITY:
+Warm, helpful, local Delhi feel.
+Dost jaisi baat karo — professional bhi."""
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -182,7 +191,7 @@ def get_ai_response(phone, message):
         )
 
         reply = response.choices[0].message.content.strip()
-        print(f"✅ Reply: {reply[:80]}")
+        print(f"✅ Groq replied: {reply[:80]}")
 
         reply = validate_ai_response(reply, message)
         return reply
