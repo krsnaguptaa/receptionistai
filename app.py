@@ -588,6 +588,26 @@ def onboard_business():
             "success": False,
             "error": str(e)})
 
+@app.route('/test-gemini')
+def test_gemini():
+    try:
+        from config import GEMINI_API_KEY
+        from google import genai
+        c = genai.Client(api_key=GEMINI_API_KEY)
+        response = c.models.generate_content(
+            model='gemini-2.0-flash',
+            contents='Say hello in Hinglish'
+        )
+        return (f"✅ Gemini works!<br>"
+                f"Key starts with: "
+                f"{GEMINI_API_KEY[:10]}...<br>"
+                f"Reply: {response.text}")
+    except Exception as e:
+        from config import GEMINI_API_KEY
+        return (f"❌ Error: {str(e)}<br>"
+                f"Key being used: "
+                f"{GEMINI_API_KEY[:10]}...")
+
 # ── START ─────────────────────────────
 
 if __name__ == '__main__':
