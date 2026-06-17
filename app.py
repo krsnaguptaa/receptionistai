@@ -164,12 +164,12 @@ def webhook():
         # Log outgoing
         log_conversation(phone, 'out', reply)
 
-        # Booking intent handling
+     # Booking intent handling
         if detect_booking_intent(text):
             customer = get_customer(phone)
             name = (customer['name']
                     if customer and customer['name']
-                    else phone)
+                    else 'Customer')
 
             # Notify owner
             send_owner_alert(
@@ -177,17 +177,54 @@ def webhook():
                 'new_booking',
                 f"📅 Booking inquiry!\n"
                 f"Customer: {name}\n"
+                f"Phone: {phone}\n"
                 f"Message: {text}")
+
+            # Auto save booking if AI confirmed
+            if ('confirm' in reply.lower() or
+                    '✅' in reply or
+                    'book' in reply.lower()):
+                try:
+                    from gemini_brain import (
+                        extract_service_from_message,
+                        extract_date_from_message,
+                        extract_time_from_message)
+
+                    service = extract_service_from_message(text)
+                    date = extract_date_from_message(text)
+                    time_slot = extract_time_from_message(text)
+
+                    if service and date and time_slot:
+                        from booking_engine import process_booking
+                        result = process_booking(
+                            phone=phone,
+                            name=name,
+                            service_name=service,
+                            date=date,
+                            time=time_slot)
+                        print(f"✅ Booking saved: "
+                              f"{service} on "
+                              f"{date} at {time_slot}")
+
+                        # Schedule reminder
+                        if result.get('success'):
+                            from database import update_after_visit
+                            update_after_visit(
+                                phone, service,
+                                'Any', 0)
+
+                except Exception as book_err:
+                    print(f"Booking save error: {book_err}")
 
             # Check upsell opportunity
             from gemini_brain import (
                 extract_service_from_message)
-            service = extract_service_from_message(
-                text)
+            service = extract_service_from_message(text)
             if service:
                 upsell = get_upsell_message(
                     service, phone)
                 if upsell:
+                    upsell['original'] = service
                     pending_upsells[phone] = upsell
                     send_message(
                         phone,
