@@ -1,8 +1,8 @@
 import os
 
-GEMINI_API_KEY    = os.environ.get(
-    'GEMINI_API_KEY',
-    'AQ.Ab8RN6KfiyBdTEAGPaRmX6F4-c7j-mhYS6xKLo5mQu08N340zw')
+GROQ_API_KEY    = os.environ.get(
+    'GROQ_API_KEY',
+    '')
 WHATSAPP_TOKEN    = os.environ.get(
     'WHATSAPP_TOKEN',
     'your_local_token')
