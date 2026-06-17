@@ -1,5 +1,5 @@
-from google import genai
-from config import (GEMINI_API_KEY,
+from groq import Groq
+from config import (GROQ_API_KEY,
                     BUSINESS_NAME,
                     BUSINESS_HOURS,
                     BUSINESS_LOCATION,
@@ -9,7 +9,10 @@ from memory_engine import build_customer_context
 from safety_engine import validate_ai_response
 import re
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Initialize Groq client
+client = Groq(api_key=GROQ_API_KEY)
+
+# ── INTENT DETECTION ──────────────────
 
 def detect_booking_intent(message):
     keywords = [
@@ -87,7 +90,8 @@ def extract_date_from_message(message):
     for day_name, day_num in days.items():
         if day_name in msg_lower:
             days_ahead = (
-                day_num - today.weekday() + 7) % 7
+                day_num -
+                today.weekday() + 7) % 7
             if days_ahead == 0:
                 days_ahead = 7
             target = today + timedelta(
@@ -116,67 +120,84 @@ def extract_time_from_message(message):
             return f"{hour:02d}:00"
     return None
 
+# ── MAIN AI RESPONSE ──────────────────
+
 def get_ai_response(phone, message):
     try:
-        print(f"🤖 Getting AI response for: {message}")
-        print(f"🔑 Key: {GEMINI_API_KEY[:15]}...")
+        print(f"🤖 Groq processing: {message}")
 
         customer_ctx = build_customer_context(phone)
         services_text = get_services_formatted()
 
-        # NOTE: THIS MUST BE f""" NOT JUST """
-        prompt = f"""Tu ek friendly AI receptionist hai {BUSINESS_NAME} ke liye Delhi mein.
+        system_prompt = f"""Tu ek friendly AI receptionist hai {BUSINESS_NAME} ke liye Delhi mein.
 
 LANGUAGE — HINGLISH:
 Hindi aur English mix karo naturally.
-Jaise Delhi ke log baat karte hain.
-WhatsApp ke liye short rakho — max 4 lines.
-Emojis thode use karo.
+Jaise Delhi ke log actually baat karte hain.
+Example: "Haan bilkul! Amit kal free hai 😊"
+WhatsApp ke liye SHORT rakho — max 4 lines.
+Emojis thode use karo — zyada nahi.
 
-BUSINESS:
+BUSINESS INFORMATION:
 Naam: {BUSINESS_NAME}
 Location: {BUSINESS_LOCATION}
 Timings: {BUSINESS_HOURS}
 Closed: {', '.join(BUSINESS_CLOSED)}
 
-SERVICES:
+SERVICES AND PRICES:
 {services_text}
 
-CUSTOMER INFO:
+CUSTOMER PROFILE:
 {customer_ctx['context_text']}
 
-STRICT RULES:
-1. Price SIRF upar wali list se batao
-2. Jo service list mein nahi — clearly bolo
-3. Booking ke liye: "Main check karke confirm karta hoon!"
-4. Complaint aaye to calm raho
-5. Agar nahi pata — "Owner se confirm karke batata hoon"
+STRICT RULES — KABHI MAT TODNA:
+1. Price SIRF upar wali list se batao. Khud se koi price mat banao.
+2. Jo service list mein nahi — "Ye service nahi hai humare paas"
+3. Booking ke liye: "Main check karke confirm karta hoon! ✅"
+4. Complaint aaye to calm raho, apologize karo
+5. Agar kuch nahi pata: "Main owner se confirm karke batata hoon!"
+6. KABHI BHAI MAT BOLO — professional raho
 
 BOOKING FLOW:
-Service → Date → Time → Name → Confirm
+Jab customer book karna chahe:
+1. Kaunsi service?
+2. Kaunsi date?
+3. Kaunsa time?
+4. Name? (naye customer ke liye)
+5. "Main check karke confirm karta hoon! ✅"
 
-Customer ka message: {message}
+PERSONALITY:
+Warm, helpful, local Delhi feel.
+Dost jaisi baat karo — professional bhi."""
 
-Tera Hinglish reply:"""
-
-        print(f"📤 Calling Gemini...")
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=prompt
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": message
+                }
+            ],
+            max_tokens=300,
+            temperature=0.7
         )
 
-        reply = response.text.strip()
-        print(f"✅ Gemini replied: {reply[:80]}")
+        reply = response.choices[0].message.content.strip()
+        print(f"✅ Groq replied: {reply[:80]}")
 
         reply = validate_ai_response(reply, message)
         return reply
 
     except Exception as e:
-        print(f"❌ GEMINI ERROR: {type(e).__name__}: {str(e)}")
+        print(f"❌ GROQ ERROR: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
         return (
             f"Namaste! 😊\n"
             f"{BUSINESS_NAME} mein aapka swagat hai!\n"
-            f"Kya help kar sakta hoon?"
+            f"Services ke liye reply karo!"
         )
