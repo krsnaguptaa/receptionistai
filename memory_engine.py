@@ -8,7 +8,7 @@ def extract_name(message):
     triggers = [
         'mera naam', 'my name is',
         "i'm", 'i am', 'naam hai',
-        'main hoon'
+        'main hoon', 'naam'
     ]
     words = message.split()
     msg_lower = message.lower()
@@ -17,8 +17,20 @@ def extract_name(message):
         if trigger in msg_lower:
             idx = msg_lower.find(trigger)
             after = message[idx+len(trigger):]
-            name = after.strip().split()[0]
-            return name.capitalize()
+            after = after.strip()
+            if after:
+                name = after.split()[0]
+                name = name.strip('.,!?')
+                return name.capitalize()
+
+    # If message is just ONE word
+    # and previous AI message asked for name
+    # treat it as the name
+    if (len(words) == 1 and
+            len(message) > 1 and
+            message.isalpha()):
+        return message.strip().capitalize()
+
     return None
 
 def extract_birthday(message):
