@@ -68,12 +68,29 @@ def build_customer_context(phone):
     if not customer:
         return {
             'is_new': True,
+            'name': None,
             'context_text': (
                 "NEW CUSTOMER — first time. "
                 "Be welcoming. Try to get name."
             )
         }
 
+    visits = customer['total_visits']
+    name = customer['name'] or None
+
+    context = f"""
+RETURNING CUSTOMER:
+Name: {name or 'Unknown - ask for name'}
+Total Visits: {visits}
+Last Service: {customer['last_service'] or 'None'}
+"""
+
+    return {
+        'is_new': False,
+        'name': name,
+        'context_text': context,
+        'customer': customer
+    }
     visits = customer['total_visits']
     name = customer['name'] or 'Customer'
 
