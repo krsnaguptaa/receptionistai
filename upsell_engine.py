@@ -56,7 +56,10 @@ def get_upsell_message(service_name, phone):
     else:
         price_text = f"₹{price}"
 
-    name = customer['name'] if customer else "Aap"
+    if customer and customer['name']:
+        name = customer['name']
+    else:
+        name = "Aap"
 
     message = (
         f"Ek suggestion {name}! 💡\n\n"
@@ -71,7 +74,6 @@ def get_upsell_message(service_name, phone):
         'upsell_service': rule['upsell'],
         'upsell_price': upsell_service['price']
     }
-
 def log_upsell_result(phone, original,
                        upsell, accepted,
                        revenue):
