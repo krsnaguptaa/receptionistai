@@ -119,7 +119,10 @@ def webhook():
         save_customer(phone)
 
         # Update memory
-        update_memory_from_message(phone, text)
+        updates = update_memory_from_message(
+            phone, text)
+        if updates.get('name'):
+            print(f"✅ Name saved: {updates['name']}")
 
         # Log incoming
         log_conversation(phone, 'in', text)
